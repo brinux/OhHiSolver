@@ -22,13 +22,12 @@
 
 			SchemaPrinter.PrintSchema(schema);
 
-
 			while (schema.Solve())
 			{
 				SchemaPrinter.PrintSchema(schema);
-
-				Console.WriteLine(schema.IsSolved() ? "Solved!" : "The schema couldn't be solved.");
 			}
+
+			Console.WriteLine(schema.IsSolved() ? "Solved!" : "The schema couldn't be solved.");
 		}
 	}
 }

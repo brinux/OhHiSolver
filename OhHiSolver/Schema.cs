@@ -1,8 +1,6 @@
-﻿using System.Diagnostics;
-
-namespace brinux.ohhisolver
+﻿namespace brinux.ohhisolver
 {
-	public class Schema
+	public class Schema : ICloneable
 	{
 		public int Size { get; }
 		public CellStatus[][] Cells { get; private set; }
@@ -93,6 +91,32 @@ namespace brinux.ohhisolver
 					if (result)
 					{
 						break;
+					}
+				}
+			}
+
+			if (!result)
+			{
+				for (int r = 0; r < Size; r++)
+				{
+					result = MandatoryOptionsInRow(r);
+
+					if (result)
+					{
+						break;
+					}
+				}
+
+				if (!result)
+				{
+					for (int c = 0; c < Size; c++)
+					{
+						result = MandatoryOptionsInColumn(c);
+
+						if (result)
+						{
+							break;
+						}
 					}
 				}
 			}
@@ -448,113 +472,176 @@ namespace brinux.ohhisolver
 		{
 			var applied = false;
 
-			var missingPrimary = Size - CountPrimaryElementsInRow(r);
-			var missingSecondary = Size - CountSecondaryElementsInRow(r);
+			var missingPrimary = Size / 2 - CountPrimaryElementsInRow(r);
+			var missingSecondary = Size / 2 - CountSecondaryElementsInRow(r);
 
-			if (missingPrimary == 1 || missingSecondary == 1)
+			if (missingPrimary == 0 || missingSecondary == 0)
 			{
-				var options = GetMissingCellsOptions(missingPrimary, missingSecondary);
+				return applied;
+			}
 
-				foreach (var option in options)
+			var validOptions = new List<CellStatus[]>();
+
+			var options = LineOptionsCalculator.GetMissingCellsOptions(missingPrimary, missingSecondary);
+
+			foreach (var option in options)
+			{
+				var optionSchema = (Schema) Clone();
+
+				var optionIndex = 0;
+
+				for (int c = 0; c < Size; c++)
 				{
-					var optionRow = new CellStatus[Size];
-
-					Array.Copy(Cells[r], optionRow, Size);
-
-					var optionIndex = 0;
-
-					for (int c = 0; c < Size; c++)
+					if (optionSchema.Cells[r][c] == CellStatus.Empty)
 					{
-						if (optionRow[c] == CellStatus.Empty)
-						{
-							optionRow[c] = option[optionIndex++];
-						}
+						optionSchema.Cells[r][c] = option[optionIndex++];
 					}
+				}
 
-					for (int c = 0; c < Size - 2; c++)
+				if (optionSchema.IsValid())
+				{
+					validOptions.Add(option);
+				}
+			}
+
+			if (validOptions.Count > 0)
+			{
+				var mandatoryElements = new CellStatus[validOptions.First().Length];
+
+				var initialized = false;
+
+				foreach (var option in validOptions)
+				{
+					if (!initialized)
 					{
-						if (optionRow[c] == optionRow[c + 1] && optionRow[c] == optionRow[c + 2])
+						for (int i = 0; i < option.Length; i++)
 						{
-							options.Remove(option);
+							mandatoryElements[i] = option[i];
 						}
-					}
 
-					for (int c = 0; c < Size; c++)
+						initialized = true;
+					}
+					else
 					{
-						if (Cells[r][c] == CellStatus.Empty)
+						for (int i = 0; i < option.Length; i++)
 						{
-							if ((r - 2 > 0 && optionRow[c] == Cells[r - 1][c] && optionRow[c] == Cells[r - 2][c]) ||
-								(r - 1 > 0 && r + 1 < Size && optionRow[c] == Cells[r - 1][c] && optionRow[c] == Cells[r + 1][c]) ||
-								(r + 2 < Size && optionRow[c] == Cells[r + 1][c] && optionRow[c] == Cells[r + 2][c]))
+							if (mandatoryElements[i] != CellStatus.Empty && mandatoryElements[i] != option[i])
 							{
-								options.Remove(option);
+								mandatoryElements[i] = CellStatus.Empty;
 							}
 						}
 					}
 				}
 
+				int optionIndex = 0;
 
+				for (int c = 0; c < Size; c++)
+				{
+					if (Cells[r][c] == CellStatus.Empty)
+					{
+						if (mandatoryElements[optionIndex] != CellStatus.Empty)
+						{
+							Cells[r][c] = mandatoryElements[optionIndex];
+
+							applied = true;
+
+							Console.WriteLine($"In row { r + 1}, considering all the possible options, it resulted cell { r + 1 }:{ c + 1 } had to be mandatorily set to { Cells[r][c] }.");
+						}
+
+						optionIndex++;
+					}
+				}
 			}
 
 			return applied;
 		}
 
-		private List<CellStatus[]> GetMissingCellsOptions(int primaries, int secondaries)
+		private bool MandatoryOptionsInColumn(int c)
 		{
-			var options = new List<CellStatus[]>();
+			var applied = false;
 
-			if (primaries > 0 && secondaries == 0)
+			var missingPrimary = Size / 2 - CountPrimaryElementsInColumn(c);
+			var missingSecondary = Size / 2 - CountSecondaryElementsInColumn(c);
+
+			if (missingPrimary == 0 || missingSecondary == 0)
 			{
-				var option = new CellStatus[primaries];
-
-				for (int i = 0; i < primaries; i++)
-				{
-					option[i] = CellStatus.PrimaryColor;
-				}
-
-				options.Add(option);
+				return applied;
 			}
-			else if (primaries == 0 && secondaries > 0)
-			{
-				var option = new CellStatus[secondaries];
 
-				for (int i = 0; i < secondaries; i++)
+			var validOptions = new List<CellStatus[]>();
+
+			var options = LineOptionsCalculator.GetMissingCellsOptions(missingPrimary, missingSecondary);
+
+			foreach (var option in options)
+			{
+				var optionSchema = (Schema)Clone();
+
+				var optionIndex = 0;
+
+				for (int r = 0; r < Size; r++)
 				{
-					option[i] = CellStatus.SecondaryColor;
+					if (optionSchema.Cells[r][c] == CellStatus.Empty)
+					{
+						optionSchema.Cells[r][c] = option[optionIndex++];
+					}
 				}
 
-				options.Add(option);
-			}
-			else
-			{
-				var primaryOptions = GetMissingCellsOptions(primaries - 1, secondaries);
-
-				foreach (var o in primaryOptions)
+				if (optionSchema.IsValid())
 				{
-					var option = new CellStatus[primaries + secondaries];
-
-					option[0] = CellStatus.PrimaryColor;
-
-					Array.Copy(o, 0, option, 1, o.Length);
-
-					options.Add(option);
-				}
-
-				var secondaryOptions = GetMissingCellsOptions(primaries, secondaries - 1);
-
-				foreach (var o in secondaryOptions)
-				{
-					var option = new CellStatus[primaries + secondaries];
-
-					option[0] = CellStatus.SecondaryColor;
-
-					Array.Copy(o, 0, option, 1, o.Length);
-
-					options.Add(option);
+					validOptions.Add(option);
 				}
 			}
 
-			return options;
+			if (validOptions.Count > 0)
+			{
+				var mandatoryElements = new CellStatus[validOptions.First().Length];
+
+				var initialized = false;
+
+				foreach (var option in validOptions)
+				{
+					if (!initialized)
+					{
+						for (int i = 0; i < option.Length; i++)
+						{
+							mandatoryElements[i] = option[i];
+						}
+
+						initialized = true;
+					}
+					else
+					{
+						for (int i = 0; i < option.Length; i++)
+						{
+							if (mandatoryElements[i] != CellStatus.Empty && mandatoryElements[i] != option[i])
+							{
+								mandatoryElements[i] = CellStatus.Empty;
+							}
+						}
+					}
+				}
+
+				int optionIndex = 0;
+
+				for (int r = 0; r < Size; r++)
+				{
+					if (Cells[r][c] == CellStatus.Empty)
+					{
+						if (mandatoryElements[optionIndex] != CellStatus.Empty)
+						{
+							Cells[r][c] = mandatoryElements[optionIndex];
+
+							applied = true;
+
+							Console.WriteLine($"In column { c + 1 }, considering all the possible options, it resulted cell { r + 1 }:{ c + 1 } had to be mandatorily set to { Cells[r][c] }.");
+						}
+
+						optionIndex++;
+					}
+				}
+			}
+
+			return applied;
 		}
 
 		public bool IsSolved()
@@ -579,7 +666,7 @@ namespace brinux.ohhisolver
 			{
 				for (int c = 0; c < Size - 2; c++)
 				{
-					if (Cells[r][c] == Cells[r][c + 1] && Cells[r][c] == Cells[r][c + 2])
+					if (Cells[r][c] != CellStatus.Empty && Cells[r][c] == Cells[r][c + 1] && Cells[r][c] == Cells[r][c + 2])
 					{
 						return false;
 					}
@@ -620,7 +707,7 @@ namespace brinux.ohhisolver
 			{
 				for (int r = 0; r < Size - 2; r++)
 				{
-					if (Cells[r][c] == Cells[r + 1][c] && Cells[r][c] == Cells[r + 2][c])
+					if (Cells[r][c] != CellStatus.Empty && Cells[r][c] == Cells[r + 1][c] && Cells[r][c] == Cells[r + 2][c])
 					{
 						return false;
 					}
@@ -728,6 +815,21 @@ namespace brinux.ohhisolver
 			{
 				Cells[i] = new CellStatus[Size];
 			}
+		}
+
+		public object Clone()
+		{
+			var schema = new Schema(Size);
+
+			for (int r = 0; r < Size; r++)
+			{
+				for (int c = 0; c < Size; c++)
+				{
+					schema.Cells[r][c] = Cells[r][c];
+				}
+			}
+
+			return schema;
 		}
 	}
 }
