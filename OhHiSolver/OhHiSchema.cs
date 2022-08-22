@@ -1,11 +1,11 @@
 ﻿namespace brinux.ohhisolver
 {
-	public class Schema : ICloneable
+	public class OhHiSchema : ICloneable
 	{
 		public int Size { get; }
 		public CellStatus[][] Cells { get; private set; }
 
-		public Schema(int size)
+		public OhHiSchema(int size)
 		{
 			if (size < 2)
 			{
@@ -21,7 +21,7 @@
 			ResetSchema();
 		}
 
-		public Schema(int[][] cells)
+		public OhHiSchema(int[][] cells)
 		{
 			if (cells == null)
 			{
@@ -106,17 +106,17 @@
 						break;
 					}
 				}
+			}
 
-				if (!result)
+			if (!result)
+			{
+				for (int c = 0; c < Size; c++)
 				{
-					for (int c = 0; c < Size; c++)
-					{
-						result = MandatoryOptionsInColumn(c);
+					result = MandatoryOptionsInColumn(c);
 
-						if (result)
-						{
-							break;
-						}
+					if (result)
+					{
+						break;
 					}
 				}
 			}
@@ -148,7 +148,7 @@
 
 			if (Size >= 4)
 			{
-				for (int c = 0; c < Size - 3; c++)
+				for (int c = 0; c < Size - 2; c++)
 				{
 					if (Cells[r][c] != CellStatus.Empty &&
 						Cells[r][c + 1] == CellStatus.Empty &&
@@ -160,7 +160,7 @@
 
 						applied = true;
 
-						Console.WriteLine($"In row { r + 1 }, cell { c+ 2 } has been set to { Cells[r][c + 1] } since is in between two { Cells[r][c] } cells.");
+						Console.WriteLine($"In row { r + 1 }, cell { c + 2 } has been set to { Cells[r][c + 1] } since is in between two { Cells[r][c] } cells.");
 
 						break;
 					}
@@ -176,7 +176,7 @@
 
 			if (Size >= 4)
 			{
-				for (int r = 0; r < Size - 3; r++)
+				for (int r = 0; r < Size - 2; r++)
 				{
 					if (Cells[r][c] != CellStatus.Empty &&
 						Cells[r + 1][c] == CellStatus.Empty &&
@@ -486,7 +486,7 @@
 
 			foreach (var option in options)
 			{
-				var optionSchema = (Schema) Clone();
+				var optionSchema = (OhHiSchema) Clone();
 
 				var optionIndex = 0;
 
@@ -574,7 +574,7 @@
 
 			foreach (var option in options)
 			{
-				var optionSchema = (Schema)Clone();
+				var optionSchema = (OhHiSchema)Clone();
 
 				var optionIndex = 0;
 
@@ -819,7 +819,7 @@
 
 		public object Clone()
 		{
-			var schema = new Schema(Size);
+			var schema = new OhHiSchema(Size);
 
 			for (int r = 0; r < Size; r++)
 			{

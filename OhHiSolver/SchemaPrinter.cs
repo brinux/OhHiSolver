@@ -2,7 +2,7 @@
 {
 	public static class SchemaPrinter
 	{
-		public static void PrintSchema(Schema schema)
+		public static void PrintSchema(OhHiSchema schema)
 		{
 			if (schema == null)
 			{
